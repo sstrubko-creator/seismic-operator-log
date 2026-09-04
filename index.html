@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#123b5d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Сейсможурнал" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <title>Журнал оператора сейсморазведки</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <div class="eyebrow">SEISMIC FIELD LOG</div>
+    <h1>Журнал оператора сейсморазведки</h1>
+  </div>
+  <div class="top-actions">
+    <button class="btn secondary" id="newLogBtn">Новый журнал</button>
+    <button class="btn secondary" id="demoBtn">Демо</button>
+    <button class="btn secondary" id="saveBtn">Сохранить</button>
+    <button class="btn primary" id="exportBtn">Экспорт XLSX</button>
+  </div>
+</header>
+
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Разделы журнала">
+    <nav id="stepNav"></nav>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Заполнение</span><strong id="progressText">0%</strong></div>
+      <div class="progress"><span id="progressBar"></span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="mobile-stepbar">
+      <button class="icon-btn" id="prevBtn" aria-label="Предыдущий раздел">←</button>
+      <div><small id="mobileStepCount"></small><strong id="mobileStepTitle"></strong></div>
+      <button class="icon-btn" id="nextBtn" aria-label="Следующий раздел">→</button>
+    </div>
+
+    <form id="logForm" autocomplete="off">
+      <section class="step active" data-step="0">
+        <div class="section-head"><div><span class="badge">01</span><h2>Проект и заказчик</h2></div><p>Основные реквизиты полевых работ.</p></div>
+        <div class="card grid cols-2">
+          <label>Заказчик<input name="client" placeholder="ООО «Заказчик»" data-required></label>
+          <label>Исполнитель<input name="contractor" placeholder="ООО «Геофизика»" data-required></label>
+          <label class="span-2">Наименование проекта<input name="projectName" placeholder="Сейсморазведочные работы…" data-required></label>
+          <label>Шифр / номер проекта<input name="projectCode" placeholder="PRJ-2026-001"></label>
+          <label>Номер партии / экипажа<input name="crewNo" placeholder="Партия №…"></label>
+          <label>Дата начала<input type="date" name="dateStart" data-required></label>
+          <label>Дата окончания<input type="date" name="dateEnd"></label>
+          <label class="span-2">Полигон / район работ<textarea name="area" rows="2" placeholder="Акватория, месторождение, административный район…" data-required></textarea></label>
+          <label>Система координат<input name="crs" placeholder="WGS 84 / UTM zone…"></label>
+          <label>Часовой пояс<select name="timezone"><option>UTC</option><option>UTC+3</option><option>UTC+4</option><option>Местное время</option></select></label>
+        </div>
+        <div class="card">
+          <h3>Геофизические методы</h3>
+          <div class="check-grid">
+            <label class="check"><input type="checkbox" name="methods" value="2D сейсморазведка">2D сейсморазведка</label>
+            <label class="check"><input type="checkbox" name="methods" value="3D сейсморазведка">3D сейсморазведка</label>
+            <label class="check"><input type="checkbox" name="methods" value="DAS / ВОЛС">DAS / ВОЛС</label>
+            <label class="check"><input type="checkbox" name="methods" value="МОВ / МОВ-ОГТ">МОВ / МОВ-ОГТ</label>
+            <label class="check"><input type="checkbox" name="methods" value="ВСП">ВСП</label>
+            <label class="check"><input type="checkbox" name="methods" value="Гидроакустика / профилограф">Гидроакустика</label>
+          </div>
+          <label>Другие методы<input name="otherMethods" placeholder="Через запятую"></label>
+        </div>
+      </section>
+
+      <section class="step" data-step="1">
+        <div class="section-head"><div><span class="badge">02</span><h2>Оборудование</h2></div><p>Источники, приемники, навигация, синхронизация и регистрация.</p></div>
+        <div class="card"><div class="table-title"><h3>Источники</h3><button type="button" class="btn small" data-add="sources">+ Добавить</button></div><div class="responsive-table"><table id="sourcesTable"><thead><tr><th>Тип</th><th>Изготовитель / модель</th><th>Серийный №</th><th>Ключевые параметры</th><th></th></tr></thead><tbody></tbody></table></div></div>
+        <div class="card"><div class="table-title"><h3>Приемные системы</h3><button type="button" class="btn small" data-add="receivers">+ Добавить</button></div><div class="responsive-table"><table id="receiversTable"><thead><tr><th>Тип</th><th>Изготовитель / модель</th><th>Серийный №</th><th>Каналы / длина</th><th>Шаг / gauge length</th><th></th></tr></thead><tbody></tbody></table></div></div>
+        <div class="card grid cols-2">
+          <label>Система регистрации<input name="recordingSystem" placeholder="Sercel / Geometrics / interrogator…"></label>
+          <label>Навигация<input name="navigation" placeholder="GNSS, RTK, эхолот, INS…"></label>
+          <label>Синхронизация времени<input name="sync" placeholder="GPS PPS / PTP / NTP / trigger…"></label>
+          <label>Основной источник времени<input name="timeSource" placeholder="GNSS UTC"></label>
+          <label class="span-2">Примечания по конфигурации<textarea name="equipmentNotes" rows="3" placeholder="Версии ПО, коммутация, резервное оборудование, изменения конфигурации…"></textarea></label>
+        </div>
+      </section>
+
+      <section class="step" data-step="2">
+        <div class="section-head"><div><span class="badge">03</span><h2>Параметры съемки</h2></div><p>Базовые параметры регистрации и геометрии.</p></div>
+        <div class="card grid cols-3">
+          <label>Интервал дискретизации, мс<input type="number" step="0.001" name="sampleInterval" placeholder="0.5"></label>
+          <label>Длина записи, с<input type="number" step="0.001" name="recordLength" placeholder="4"></label>
+          <label>Предзапись, мс<input type="number" step="1" name="preTrigger" placeholder="100"></label>
+          <label>Интервал ПВ, м<input type="number" step="0.01" name="shotInterval" placeholder="5"></label>
+          <label>Шаг приемников, м<input type="number" step="0.01" name="receiverInterval" placeholder="1"></label>
+          <label>Номинальная кратность<input type="number" step="1" name="fold" placeholder="24"></label>
+          <label>Число активных каналов<input type="number" step="1" name="activeChannels" placeholder="96"></label>
+          <label>Частота ФНЧ, Гц<input type="number" step="0.1" name="lowPass"></label>
+          <label>Частота ФВЧ, Гц<input type="number" step="0.1" name="highPass"></label>
+          <label>Notch, Гц<input type="number" step="0.1" name="notch" placeholder="50"></label>
+          <label>Формат записи<select name="dataFormat"><option>SEG-D</option><option>SEG-Y</option><option>TDMS</option><option>HDF5</option><option>RAW / vendor</option><option>Другое</option></select></label>
+          <label>Единицы амплитуд<input name="amplitudeUnits" placeholder="counts / V / strain rate…"></label>
+          <label class="span-3">Схема / описание расстановки<textarea name="geometry" rows="4" placeholder="Офсеты, длина расстановки, глубина погружения, буксировка, положение кабеля, число линий…"></textarea></label>
+        </div>
+      </section>
+
+      <section class="step" data-step="3">
+        <div class="section-head"><div><span class="badge">04</span><h2>Исполнители</h2></div><p>Состав смены и зоны ответственности.</p></div>
+        <div class="card"><div class="table-title"><h3>Состав полевой группы</h3><button type="button" class="btn small" data-add="crew">+ Добавить</button></div><div class="responsive-table"><table id="crewTable"><thead><tr><th>ФИО</th><th>Должность</th><th>Организация</th><th>Контакт / позывной</th><th>Смена</th><th></th></tr></thead><tbody></tbody></table></div></div>
+        <div class="card grid cols-2">
+          <label>Ответственный за съемку<input name="chief" placeholder="ФИО"></label>
+          <label>Оператор регистрации<input name="observer" placeholder="ФИО"></label>
+          <label>Навигатор<input name="navigatorName" placeholder="ФИО"></label>
+          <label>Ответственный за HSE<input name="hse" placeholder="ФИО"></label>
+        </div>
+      </section>
+
+      <section class="step" data-step="4">
+        <div class="section-head"><div><span class="badge">05</span><h2>Операторский журнал</h2></div><p>Основная рабочая таблица по профилям / записям / событиям.</p></div>
+        <div class="card">
+          <div class="table-title"><h3>Записи</h3><div><button type="button" class="btn small" id="add10Btn">+10 строк</button><button type="button" class="btn small" data-add="log">+ Строка</button></div></div>
+          <div class="responsive-table wide"><table id="logTable"><thead><tr><th>Дата</th><th>Время</th><th>Профиль</th><th>FFID / запись</th><th>ПВ / SP</th><th>X / Lon</th><th>Y / Lat</th><th>Источник</th><th>Параметры / режим</th><th>QC</th><th>Комментарий</th><th></th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <section class="step" data-step="5">
+        <div class="section-head"><div><span class="badge">06</span><h2>QC, условия и примечания</h2></div><p>Контроль качества, погода, простои и изменения параметров.</p></div>
+        <div class="card grid cols-2">
+          <label>Погодные / гидрометеоусловия<textarea name="weather" rows="3" placeholder="Температура, ветер, волнение, осадки…"></textarea></label>
+          <label>Состояние линии / контакта<textarea name="lineCondition" rows="3" placeholder="Грунт, лед, вода, состояние кабеля, coupling…"></textarea></label>
+          <label>Критерии QC<textarea name="qcCriteria" rows="3" placeholder="Шум, пропуски каналов, триггер, временная синхронизация…"></textarea></label>
+          <label>Известные проблемы / ограничения<textarea name="issues" rows="3" placeholder="Неисправности, каналы, пропуски, помехи…"></textarea></label>
+          <label class="span-2">Хронология изменений и простоев<textarea name="downtime" rows="5" placeholder="Дата/время — событие — действие — влияние на данные"></textarea></label>
+          <label class="span-2">Итоговые замечания оператора<textarea name="finalNotes" rows="5"></textarea></label>
+        </div>
+      </section>
+    </form>
+
+    <div class="bottom-nav">
+      <button class="btn secondary" id="bottomPrev" type="button">← Назад</button>
+      <button class="btn primary" id="bottomNext" type="button">Далее →</button>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<script src="app.js"></script>
+</body>
+</html>
