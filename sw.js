@@ -1,4 +1,4 @@
-const CACHE = 'seismic-operator-log-v1';
+const CACHE = 'seismic-operator-log-v2-seconds';
 const APP_ASSETS = [
   './',
   './index.html',
